@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { PresentationSettings } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Play, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Play, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
 
 interface SlidePreviewProps {
     text: string;
@@ -17,6 +17,7 @@ interface SlidePreviewProps {
 export function SlidePreview({ text, settings, currentSlide, totalSlides, onNext, onPrev }: SlidePreviewProps) {
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const [zoomLevel, setZoomLevel] = useState(1.5);
 
     useEffect(() => {
         setMounted(true);
@@ -93,6 +94,15 @@ export function SlidePreview({ text, settings, currentSlide, totalSlides, onNext
         <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ ...containerStyle, backgroundColor: settings.backgroundType === 'color' ? settings.backgroundColor : 'black' }}>
             {/* Controls */}
             <div className="absolute top-4 right-4 flex gap-2 z-50">
+                <div className="flex items-center gap-1 bg-black/30 rounded-lg p-1 mr-2">
+                    <Button variant="ghost" size="icon" onClick={() => setZoomLevel(prev => Math.max(0.5, prev - 0.1))} className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8">
+                        <ZoomOut className="w-5 h-5" />
+                    </Button>
+                    <span className="text-white/70 text-xs w-8 text-center">{Math.round(zoomLevel * 100)}%</span>
+                    <Button variant="ghost" size="icon" onClick={() => setZoomLevel(prev => Math.min(3, prev + 0.1))} className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8">
+                        <ZoomIn className="w-5 h-5" />
+                    </Button>
+                </div>
                 <Button variant="ghost" size="icon" onClick={exitFullscreen} className="text-white/50 hover:text-white hover:bg-white/10">
                     <X className="w-8 h-8" />
                 </Button>
@@ -104,7 +114,7 @@ export function SlidePreview({ text, settings, currentSlide, totalSlides, onNext
 
             {/* Slide Content */}
             <div className="w-full h-full flex items-center justify-center p-12">
-                <p style={{ ...textStyle, fontSize: `${settings.fontSize * 1.5}px` }} className="whitespace-pre-wrap break-words w-full max-w-6xl">
+                <p style={{ ...textStyle, fontSize: `${settings.fontSize * zoomLevel}px` }} className="whitespace-pre-wrap break-words w-full max-w-6xl">
                     {text || "Preview Text"}
                 </p>
             </div>

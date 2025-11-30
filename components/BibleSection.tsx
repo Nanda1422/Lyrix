@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Book, Maximize2, Minimize2, Loader2, AlignLeft, AlignCenter, AlignRight, AlignJustify, ChevronLeft, ChevronRight, Type, Bold } from 'lucide-react';
+import { Book, Maximize2, Minimize2, Loader2, AlignLeft, AlignCenter, AlignRight, AlignJustify, ChevronLeft, ChevronRight, Type, Bold, ZoomIn, ZoomOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BibleVerse {
@@ -421,6 +421,28 @@ export function BibleSection({ onVerseSelect }: BibleSectionProps) {
                     >
                         <Maximize2 className="w-5 h-5" />
                     </Button>
+                )}
+
+                {/* Zoom Controls (Full Screen Only) */}
+                {isFullScreen && (
+                    <div className="absolute top-4 right-16 flex gap-2 z-50 opacity-0 group-hover:opacity-100 transition-opacity bg-background/50 rounded-lg p-1">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setFontSize(prev => Math.max(16, prev - 2))}
+                            title="Zoom Out"
+                        >
+                            <ZoomOut className="w-5 h-5" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setFontSize(prev => Math.min(100, prev + 2))}
+                            title="Zoom In"
+                        >
+                            <ZoomIn className="w-5 h-5" />
+                        </Button>
+                    </div>
                 )}
 
                 {/* Navigation Arrows */}
