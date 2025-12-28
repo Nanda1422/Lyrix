@@ -24,8 +24,11 @@ export function CustomizationPanel({ settings, onSettingsChange, onDownload }: C
         if (file) {
             const reader = new FileReader();
             reader.onload = (event) => {
-                updateSetting('backgroundImage', event.target?.result as string);
-                updateSetting('backgroundType', 'image');
+                onSettingsChange({
+                    ...settings,
+                    backgroundImage: event.target?.result as string,
+                    backgroundType: 'image'
+                });
             };
             reader.readAsDataURL(file);
         }

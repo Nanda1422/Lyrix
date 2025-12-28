@@ -50,6 +50,9 @@ export function BibleSection({ onVerseSelect }: BibleSectionProps) {
     const [fontSize, setFontSize] = useState(30);
     const [lineHeight, setLineHeight] = useState(1.4);
     const [isBold, setIsBold] = useState(false);
+    const [textPosition, setTextPosition] = useState({ x: 50, y: 50 });
+    const [isDragging, setIsDragging] = useState(false);
+    const dragStartRef = useRef<{ x: number, y: number, initialX: number, initialY: number } | null>(null);
 
     const [verses, setVerses] = useState<BibleVerse[]>([]);
     const [secondaryVerses, setSecondaryVerses] = useState<BibleVerse[]>([]);
@@ -218,6 +221,48 @@ export function BibleSection({ onVerseSelect }: BibleSectionProps) {
 
     const primaryText = getCurrentVerseText(verses);
     const secondaryText = getCurrentVerseText(secondaryVerses);
+
+    const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+        setIsDragging(true);
+        const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+
+        // Store initial values
+        dragStartRef.current = {
+            x: clientX,
+            y: clientY,
+            initialX: textPosition.x,
+            initialY: textPosition.y
+        };
+    };
+
+    const handleDragMove = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!isDragging || !dragStartRef.current || !containerRef.current) return;
+
+        const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+
+        const rect = containerRef.current.getBoundingClientRect();
+
+        // Calculate total delta from start
+        const totalDeltaX = clientX - dragStartRef.current.x;
+        const totalDeltaY = clientY - dragStartRef.current.y;
+
+        // Convert delta to percentage
+        const deltaXPercent = (totalDeltaX / rect.width) * 100;
+        const deltaYPercent = (totalDeltaY / rect.height) * 100;
+
+        // Apply delta to initial position
+        const newX = Math.max(0, Math.min(100, dragStartRef.current.initialX + deltaXPercent));
+        const newY = Math.max(0, Math.min(100, dragStartRef.current.initialY + deltaYPercent));
+
+        setTextPosition({ x: newX, y: newY });
+    };
+
+    const handleDragEnd = () => {
+        setIsDragging(false);
+        dragStartRef.current = null;
+    };
 
     return (
         <div className="flex flex-col h-full w-full bg-background">
@@ -397,9 +442,14 @@ export function BibleSection({ onVerseSelect }: BibleSectionProps) {
             <div
                 ref={containerRef}
                 className={cn(
-                    "flex-1 bg-card relative transition-all duration-300 overflow-y-auto flex flex-col group",
+                    "flex-1 bg-card relative transition-all duration-300 overflow-hidden flex flex-col group",
                     isFullScreen ? "fixed inset-0 z-50 bg-background" : ""
                 )}
+                onMouseMove={handleDragMove}
+                onMouseUp={handleDragEnd}
+                onMouseLeave={handleDragEnd}
+                onTouchMove={handleDragMove}
+                onTouchEnd={handleDragEnd}
             >
                 {/* Full Screen Toggle */}
                 {isFullScreen ? (
@@ -471,10 +521,23 @@ export function BibleSection({ onVerseSelect }: BibleSectionProps) {
                         <Loader2 className="w-10 h-10 animate-spin text-muted-foreground" />
                     </div>
                 ) : (
-                    <div className={cn(
-                        "w-full max-w-7xl space-y-8 animate-in fade-in zoom-in-95 duration-300 m-auto p-8",
-                        `text-${textAlign}`
-                    )}>
+                    <div
+                        className={cn(
+                            "w-full max-w-7xl space-y-8 animate-in fade-in zoom-in-95 duration-300 p-8 absolute",
+                            `text-${textAlign}`
+                        )}
+                        style={{
+                            left: `${textPosition.x}%`,
+                            top: `${textPosition.y}%`,
+                            transform: 'translate(-50%, -50%)',
+                            cursor: isDragging ? 'grabbing' : 'grab',
+                            userSelect: 'none',
+                            touchAction: 'none',
+                            zIndex: 60
+                        }}
+                        onMouseDown={handleDragStart}
+                        onTouchStart={handleDragStart}
+                    >
                         {/* Primary Verse */}
                         <div className="space-y-4">
                             <p

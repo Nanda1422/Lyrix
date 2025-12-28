@@ -146,6 +146,7 @@ export default function Home() {
                                             totalSlides={verses.length}
                                             onNext={handleNextSlide}
                                             onPrev={handlePrevSlide}
+                                            onSettingsChange={setSettings}
                                         />
                                     </div>
                                 </section>

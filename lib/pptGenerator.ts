@@ -36,9 +36,18 @@ export async function generatePPT(text: string, settings: PresentationSettings, 
             slideText = slideText.replace(/\b\w/g, l => l.toUpperCase());
         }
 
+        // Calculate position (centering logic)
+        // Default is 50% (center). We map 0-100% to an offset relative to the slide center.
+        // Slide dimensions for 16x9 are 10 x 5.625 inches
+        const posX = settings.textPosition?.x ?? 50;
+        const posY = settings.textPosition?.y ?? 50;
+
+        const xOffset = (posX - 50) / 100 * 10;
+        const yOffset = (posY - 50) / 100 * 5.625;
+
         slide.addText(slideText, {
-            x: 0,
-            y: 0,
+            x: xOffset,
+            y: yOffset,
             w: '100%',
             h: '100%',
             fontSize: settings.fontSize,

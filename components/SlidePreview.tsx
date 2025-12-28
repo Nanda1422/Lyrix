@@ -12,12 +12,17 @@ interface SlidePreviewProps {
     totalSlides: number;
     onNext: () => void;
     onPrev: () => void;
+    onSettingsChange?: (settings: PresentationSettings) => void;
 }
 
-export function SlidePreview({ text, settings, currentSlide, totalSlides, onNext, onPrev }: SlidePreviewProps) {
+export function SlidePreview({ text, settings, currentSlide, totalSlides, onNext, onPrev, onSettingsChange }: SlidePreviewProps) {
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [mounted, setMounted] = useState(false);
     const [zoomLevel, setZoomLevel] = useState(1.5);
+    const [isDragging, setIsDragging] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const fullScreenContainerRef = useRef<HTMLDivElement>(null);
+    const dragStartRef = useRef<{ x: number, y: number, initialX: number, initialY: number } | null>(null);
 
     useEffect(() => {
         setMounted(true);
@@ -38,6 +43,62 @@ export function SlidePreview({ text, settings, currentSlide, totalSlides, onNext
         textTransform: settings.fontCase === 'normal' ? undefined : settings.fontCase,
         textAlign: settings.textAlign,
         WebkitTextStroke: settings.textStroke ? `${settings.textStrokeWidth}px ${settings.textStrokeColor}` : undefined,
+        position: 'absolute',
+        left: `${settings.textPosition?.x ?? 50}%`,
+        top: `${settings.textPosition?.y ?? 50}%`,
+        transform: 'translate(-50%, -50%)',
+        cursor: isDragging ? 'grabbing' : 'grab',
+        userSelect: 'none',
+        touchAction: 'none',
+        zIndex: 60,
+    };
+
+    const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!onSettingsChange) return;
+        setIsDragging(true);
+        const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+
+        dragStartRef.current = {
+            x: clientX,
+            y: clientY,
+            initialX: settings.textPosition?.x ?? 50,
+            initialY: settings.textPosition?.y ?? 50
+        };
+    };
+
+    const handleDragMove = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!isDragging || !dragStartRef.current || !onSettingsChange) return;
+
+        // Determine which container is active (fullscreen or preview)
+        const activeContainer = isFullscreen ? fullScreenContainerRef.current : containerRef.current;
+        if (!activeContainer) return;
+
+        const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+
+        const rect = activeContainer.getBoundingClientRect();
+
+        // Calculate total delta from start
+        const totalDeltaX = clientX - dragStartRef.current.x;
+        const totalDeltaY = clientY - dragStartRef.current.y;
+
+        // Convert delta to percentage
+        const deltaXPercent = (totalDeltaX / rect.width) * 100;
+        const deltaYPercent = (totalDeltaY / rect.height) * 100;
+
+        const newX = Math.max(0, Math.min(100, dragStartRef.current.initialX + deltaXPercent));
+        const newY = Math.max(0, Math.min(100, dragStartRef.current.initialY + deltaYPercent));
+
+        onSettingsChange({
+            ...settings,
+            textPosition: { x: newX, y: newY }
+        });
+    };
+
+    const handleDragEnd = () => {
+        setIsDragging(false);
+        dragStartRef.current = null;
     };
 
     // Handle keyboard navigation for full screen
@@ -91,7 +152,16 @@ export function SlidePreview({ text, settings, currentSlide, totalSlides, onNext
 
     // Full screen overlay content
     const fullScreenContent = (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ ...containerStyle, backgroundColor: settings.backgroundType === 'color' ? settings.backgroundColor : 'black' }}>
+        <div
+            ref={fullScreenContainerRef}
+            className="fixed inset-0 z-[9999] flex items-center justify-center"
+            style={{ ...containerStyle, backgroundColor: settings.backgroundType === 'color' ? settings.backgroundColor : 'black' }}
+            onMouseMove={handleDragMove}
+            onMouseUp={handleDragEnd}
+            onMouseLeave={handleDragEnd}
+            onTouchMove={handleDragMove}
+            onTouchEnd={handleDragEnd}
+        >
             {/* Controls */}
             <div className="absolute top-4 right-4 flex gap-2 z-50">
                 <div className="flex items-center gap-1 bg-black/30 rounded-lg p-1 mr-2">
@@ -113,8 +183,14 @@ export function SlidePreview({ text, settings, currentSlide, totalSlides, onNext
             <div className="absolute inset-y-0 right-0 w-1/4 z-40 cursor-pointer" onClick={onNext} title="Next Slide" />
 
             {/* Slide Content */}
-            <div className="w-full h-full flex items-center justify-center p-12">
-                <p style={{ ...textStyle, fontSize: `${settings.fontSize * zoomLevel}px` }} className="whitespace-pre-wrap break-words w-full max-w-6xl">
+            <div className="w-full h-full relative overflow-hidden">
+                <p
+                    style={{ ...textStyle, fontSize: `${settings.fontSize * zoomLevel}px` }}
+                    className="whitespace-pre-wrap break-words w-full max-w-6xl"
+                    onMouseDown={handleDragStart}
+                    onTouchStart={handleDragStart}
+                    data-testid="lyrics-text-fullscreen"
+                >
                     {text || "Preview Text"}
                 </p>
             </div>
@@ -147,9 +223,24 @@ export function SlidePreview({ text, settings, currentSlide, totalSlides, onNext
                     </Button>
                 </div>
             </div>
-            <div className="w-full aspect-video rounded-lg overflow-hidden border border-border shadow-sm relative" style={containerStyle}>
-                <div className="w-full h-full flex items-center justify-center overflow-hidden p-8">
-                    <p style={textStyle} className="whitespace-pre-wrap break-words w-full">
+            <div
+                ref={containerRef}
+                className="w-full aspect-video rounded-lg overflow-hidden border border-border shadow-sm relative"
+                style={containerStyle}
+                onMouseMove={handleDragMove}
+                onMouseUp={handleDragEnd}
+                onMouseLeave={handleDragEnd}
+                onTouchMove={handleDragMove}
+                onTouchEnd={handleDragEnd}
+            >
+                <div className="w-full h-full relative overflow-hidden">
+                    <p
+                        style={textStyle}
+                        className="whitespace-pre-wrap break-words w-full max-w-[90%]"
+                        onMouseDown={handleDragStart}
+                        onTouchStart={handleDragStart}
+                        data-testid="lyrics-text-preview"
+                    >
                         {text || "Preview Text"}
                     </p>
                 </div>

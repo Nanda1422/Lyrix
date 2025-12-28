@@ -11,7 +11,7 @@ export interface PresentationSettings {
     fontBold: boolean;
     fontCase: 'uppercase' | 'lowercase' | 'capitalize' | 'normal';
     textAlign: 'left' | 'center' | 'right' | 'justify';
-
+    textPosition: { x: number, y: number };
 }
 
 export const defaultSettings: PresentationSettings = {
@@ -27,4 +27,5 @@ export const defaultSettings: PresentationSettings = {
     fontBold: true,
     fontCase: 'normal',
     textAlign: 'center',
+    textPosition: { x: 50, y: 50 },
 };
