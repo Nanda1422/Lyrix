@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { PresentationSettings } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Play, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
+import { Play, X, ZoomIn, ZoomOut } from 'lucide-react';
 
 interface SlidePreviewProps {
     text: string;
